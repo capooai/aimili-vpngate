@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -108,7 +113,9 @@ jobs:
     name: Create GitHub Release
     needs: [build-linux-x64, build-linux-aarch64, build-windows-x64]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: >
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.tag != '')
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
