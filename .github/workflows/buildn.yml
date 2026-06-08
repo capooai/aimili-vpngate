@@ -1,4 +1,4 @@
-name: Build Binaries
+name: Buildn Binaries
 
 on:
   push:
