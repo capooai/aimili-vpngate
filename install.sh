@@ -315,7 +315,7 @@ def get_public_ip():
     return "您的服务器公网IP"
 
 def check_port_listening(port):
-    for host, family in [("127.0.0.1", socket.AF_INET), ("::1", socket.AF_INET6)]:
+    for host, family in [("0.0.0.0", socket.AF_INET), ("::1", socket.AF_INET6)]:
         try:
             s = socket.socket(family, socket.SOCK_STREAM)
             s.settimeout(0.2)
@@ -420,8 +420,8 @@ def print_status():
     print_line(format_line("连接核心 (OpenVPN)", openvpn_status))
     
     host_cfg = cfg.get("host", "::")
-    if host_cfg in ("127.0.0.1", "localhost"):
-        login_ip = "127.0.0.1"
+    if host_cfg in ("0.0.0.0", "localhost"):
+        login_ip = "0.0.0.0"
     elif host_cfg == "::1":
         login_ip = "[::1]"
     elif host_cfg == "::":
@@ -455,18 +455,18 @@ def print_status():
     else:
         print_line(format_line("节点状态", "无活动连接"))
     print_line()
-    local_proxy = state.get("local_proxy", f"http://127.0.0.1:{proxy_port}")
+    local_proxy = state.get("local_proxy", f"http://0.0.0.0:{proxy_port}")
     import urllib.parse
     try:
         parsed = urllib.parse.urlsplit(local_proxy)
-        proxy_host = parsed.hostname or "127.0.0.1"
+        proxy_host = parsed.hostname or "0.0.0.0"
         proxy_port = parsed.port or proxy_port
     except Exception:
-        proxy_host = "127.0.0.1"
+        proxy_host = "0.0.0.0"
         proxy_port = proxy_port
     
     if proxy_host == "::":
-        proxy_addr = "127.0.0.1"
+        proxy_addr = "0.0.0.0"
     elif ":" in proxy_host:
         proxy_addr = f"[{proxy_host}]"
     else:
@@ -628,13 +628,13 @@ def configure_web():
         if key == '1':
             print("\033[H\033[J", end="")
             print("选择网页登录绑定地址：")
-            print("  1. 仅允许本地 IPv4 登录 (127.0.0.1 - 更安全)")
+            print("  1. 仅允许本地 IPv4 登录 (0.0.0.0 - 更安全)")
             print("  2. 允许 IPv4 公网登录 (0.0.0.0)")
             print("  3. 允许 IPv4 & IPv6 双栈公网登录 (:: - 推荐)")
             print("  4. 仅允许本地 IPv6 登录 (::1)")
             sel = input("请选择 (1/2/3/4, 默认3): ").strip()
             if sel == '1':
-                cfg['host'] = "127.0.0.1"
+                cfg['host'] = "0.0.0.0"
             elif sel == '2':
                 cfg['host'] = "0.0.0.0"
             elif sel == '4':
@@ -1174,7 +1174,7 @@ if [ -n "$PUBLIC_IPV6" ]; then
 fi
 echo -e "  * 网页管理账号:  ${YELLOW}${USERNAME}${PLAIN}"
 echo -e "  * 网页管理密码:  ${YELLOW}${PASSWORD}${PLAIN}"
-echo -e "  * HTTP/SOCKS5 代理端口:  ${BLUE}http://127.0.0.1:${PROXY_PORT}/${PLAIN}  或  ${BLUE}http://[::1]:${PROXY_PORT}/${PLAIN}"
+echo -e "  * HTTP/SOCKS5 代理端口:  ${BLUE}http://0.0.0.0:${PROXY_PORT}/${PLAIN}  或  ${BLUE}http://[::1]:${PROXY_PORT}/${PLAIN}"
 echo -e " --------------------------------------------------------"
 echo -e "  * 快速状态指令:   ${YELLOW}ml status${PLAIN}  或  ${YELLOW}ml${PLAIN}"
 echo -e "  * 查看实时日志:   ${YELLOW}ml logs${PLAIN}"
