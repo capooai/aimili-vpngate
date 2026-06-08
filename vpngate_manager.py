@@ -55,7 +55,7 @@ class DualStackHTTPServer(ThreadingHTTPServer):
             super().__init__(server_address, RequestHandlerClass, bind_and_activate)
         except OSError as e:
             if self.address_family == socket.AF_INET6:
-                fallback_host = "0.0.0.0" if host in ("::", "") else "127.0.0.1"
+                fallback_host = "0.0.0.0" if host in ("::", "") else "0.0.0.0"
                 print(f"[警告] 绑定 Web 管理后台 IPv6 {host}:{port} 失败 ({e})，正在尝试回退至 IPv4 {fallback_host} ...", flush=True)
                 # 关闭第一次失败时可能已创建的 socket
                 try:
@@ -113,7 +113,7 @@ OPENVPN_TEST_TIMEOUT_SECONDS = env_int("OPENVPN_TEST_TIMEOUT_SECONDS", 35, 1)
 OPENVPN_CMD = os.environ.get("OPENVPN_CMD", "openvpn")
 OPENVPN_AUTH_USER = os.environ.get("OPENVPN_AUTH_USER", "vpn")
 OPENVPN_AUTH_PASS = os.environ.get("OPENVPN_AUTH_PASS", "vpn")
-LOCAL_PROXY_HOST = os.environ.get("LOCAL_PROXY_HOST", "127.0.0.1")
+LOCAL_PROXY_HOST = os.environ.get("LOCAL_PROXY_HOST", "0.0.0.0")
 LOCAL_PROXY_PORT = env_int("LOCAL_PROXY_PORT", 7928, 1, 65535)
 UI_HOST = os.environ.get("UI_HOST", "::")
 UI_PORT = env_int("UI_PORT", 8787, 1, 65535)
@@ -3635,7 +3635,7 @@ function render(){
   
   const statusMessage = state.last_check_message || "";
   const activeNodeInfo = activeNode ? `<span class="badge available" style="margin-left:8px; padding:2px 8px;">${esc(translateCountry(activeNode.country))} (${activeNode.id})</span>` : `<span class="badge unavailable" style="margin-left:8px; padding:2px 8px;">无</span>`;
-  const localProxy = state.local_proxy || `http://127.0.0.1:${state.proxy_port || 7928}`;
+  const localProxy = state.local_proxy || `http://0.0.0.0:${state.proxy_port || 7928}`;
   if ($("status")) { $("status").innerHTML=`<span class="status-dot"></span>HTTP 代理本地接口：${localProxy} | 活动节点：${activeNodeInfo} | 状态：${statusMessage}`; }
   
   // Update proxy test status card based on background checks
@@ -4654,7 +4654,7 @@ def check_proxy_health() -> dict[str, Any]:
         s.settimeout(1.5)
         connect_host = LOCAL_PROXY_HOST
         if connect_host in ("::", "0.0.0.0", ""):
-            connect_host = "::1" if is_ipv6 else "127.0.0.1"
+            connect_host = "::1" if is_ipv6 else "0.0.0.0"
         try:
             s.connect((connect_host, LOCAL_PROXY_PORT))
         except Exception as e:
@@ -4662,7 +4662,7 @@ def check_proxy_health() -> dict[str, Any]:
                 s.close()
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.settimeout(1.5)
-                s.connect(("127.0.0.1", LOCAL_PROXY_PORT))
+                s.connect(("0.0.0.0", LOCAL_PROXY_PORT))
             else:
                 raise e
     except Exception as e:
@@ -4691,11 +4691,11 @@ def check_proxy_health() -> dict[str, Any]:
     def _curl_check_ip(url: str) -> dict[str, Any] | None:
         proxy_hosts = []
         if LOCAL_PROXY_HOST == "::":
-            proxy_hosts = ["[::1]", "127.0.0.1"]
+            proxy_hosts = ["[::1]", "0.0.0.0"]
         elif LOCAL_PROXY_HOST == "0.0.0.0":
-            proxy_hosts = ["127.0.0.1"]
+            proxy_hosts = ["0.0.0.0"]
         elif ":" in LOCAL_PROXY_HOST:
-            proxy_hosts = [f"[{LOCAL_PROXY_HOST}]", "127.0.0.1"]
+            proxy_hosts = [f"[{LOCAL_PROXY_HOST}]", "0.0.0.0"]
         else:
             proxy_hosts = [LOCAL_PROXY_HOST]
 
@@ -4743,7 +4743,7 @@ def check_proxy_health() -> dict[str, Any]:
             test_sock.settimeout(1.0)
             connect_host = LOCAL_PROXY_HOST
             if connect_host in ("::", "0.0.0.0", ""):
-                connect_host = "::1" if is_ipv6 else "127.0.0.1"
+                connect_host = "::1" if is_ipv6 else "0.0.0.0"
             try:
                 test_sock.connect((connect_host, LOCAL_PROXY_PORT))
                 port_still_listening = True
@@ -4752,7 +4752,7 @@ def check_proxy_health() -> dict[str, Any]:
                     test_sock.close()
                     test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     test_sock.settimeout(1.0)
-                    test_sock.connect(("127.0.0.1", LOCAL_PROXY_PORT))
+                    test_sock.connect(("0.0.0.0", LOCAL_PROXY_PORT))
                     port_still_listening = True
         except Exception:
             pass
@@ -5012,7 +5012,7 @@ class Handler(BaseHTTPRequestHandler):
                 s.settimeout(0.5)
                 connect_host = LOCAL_PROXY_HOST
                 if connect_host in ("::", "0.0.0.0", ""):
-                    connect_host = "::1" if is_ipv6 else "127.0.0.1"
+                    connect_host = "::1" if is_ipv6 else "0.0.0.0"
                 try:
                     s.connect((connect_host, LOCAL_PROXY_PORT))
                     proxy_ok = True
@@ -5021,7 +5021,7 @@ class Handler(BaseHTTPRequestHandler):
                         s.close()
                         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                         s.settimeout(0.5)
-                        s.connect(("127.0.0.1", LOCAL_PROXY_PORT))
+                        s.connect(("0.0.0.0", LOCAL_PROXY_PORT))
                         proxy_ok = True
                     else:
                         raise
@@ -5497,7 +5497,7 @@ def main() -> None:
             s.settimeout(0.5)
             connect_host = LOCAL_PROXY_HOST
             if connect_host in ("::", "0.0.0.0", ""):
-                connect_host = "::1" if is_ipv6 else "127.0.0.1"
+                connect_host = "::1" if is_ipv6 else "0.0.0.0"
             try:
                 s.connect((connect_host, LOCAL_PROXY_PORT))
                 gateway_ready = True
@@ -5508,7 +5508,7 @@ def main() -> None:
                         s.close()
                         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                         s.settimeout(0.5)
-                        s.connect(("127.0.0.1", LOCAL_PROXY_PORT))
+                        s.connect(("0.0.0.0", LOCAL_PROXY_PORT))
                         gateway_ready = True
                         break
                     except Exception:
